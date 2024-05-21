@@ -33,5 +33,5 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          mp4-remux
-          mp4-remux.exe
+          mp4-remux-linux
+          mp4-remux-win.exe
