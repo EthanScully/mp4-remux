@@ -50,11 +50,11 @@ func Arg(i int) (arg string) {
 }
 func help() (out string) {
 	out = `Supported Arguments:
-	--os	windows|linux
-	--arch	arm64
-	--cc	specify C compiler
-	--debug	enable ffmpeg debug mode
-	--output executable output path/name
+	--os		windows|linux
+	--arch		arm64
+	--cc		specify C compiler
+	--debug		enable ffmpeg debug mode
+	--output	executable output path/name
 `
 	return
 }
@@ -210,7 +210,7 @@ func buildFFmpeg() (err error) {
 		return err
 	}
 	// Create Build Directory
-	buildDir := fmt.Sprintf("%s/build/ffmpeg/%s/", sourceDir, OS)
+	buildDir := fmt.Sprintf("%s/build/FFmpeg/%s/", sourceDir, OS)
 	err = os.MkdirAll(buildDir, 0770)
 	if err != nil {
 		return err

@@ -243,9 +243,6 @@ func Remux(filepath, filename string) (err error) {
 			pkt.pts += diff
 		}
 		lastdts[pkt.stream_index] = pkt.dts
-		if packet < 20 {
-			fmt.Printf("stream:%v, packet:%v, pts:%v, dts:%v\n", pkt.stream_index, packet, pkt.pts, pkt.dts)
-		}
 		err = rescalePacket(pkt, ifmt_ctx, ofmt_ctx, stream_mapping_size, stream_mapping)
 		if err != nil {
 			read()
