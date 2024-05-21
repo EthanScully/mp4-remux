@@ -113,8 +113,6 @@ func preCheck() (err error) {
 				OS = Arg(i + 1)
 			case "arch":
 				ARCH = Arg(i + 1)
-			case "cc":
-				CC = Arg(i + 1)
 			case "debug":
 				ret := -1
 				for i, v := range makeArgs {
@@ -146,32 +144,26 @@ func preCheck() (err error) {
 	default:
 		return fmt.Errorf("supported arch: amd64")
 	}
-	// Compiler check
-	if CC == "" {
-		CC = os.Getenv("CC")
-	}
-	if CC != os.Getenv("CC") {
-		os.Setenv("CC", CC)
-	}
 	// Make Setup
 	switch OS {
 	case "linux":
-		if CC == "" {
-			CC = "gcc"
+		switch ARCH {
+		case "amd64":
+			CC = "x86_64-linux-gnu-gcc"
+			makeArgs = append([]string{"arch=x86_64"}, makeArgs...)
 		}
+		
 	case "windows":
-		if CC == "" || CC == "gcc" {
-			fmt.Println("CC environment variable for windows compilation not specified")
-			return
-		}
 		makeArgs = append([]string{"enable-cross-compile"}, makeArgs...)
 		makeArgs = append([]string{"target-os=mingw32"}, makeArgs...)
 		switch ARCH {
 		case "amd64":
+			CC = "x86_64-w64-mingw32-gcc"
 			makeArgs = append([]string{"cross-prefix=x86_64-w64-mingw32-"}, makeArgs...)
 			makeArgs = append([]string{"arch=x86_64"}, makeArgs...)
 		}
 	}
+	os.Setenv("CC", CC)
 	return
 }
 func buildFFmpeg() (err error) {
