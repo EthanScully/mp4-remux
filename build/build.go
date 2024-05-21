@@ -10,6 +10,8 @@ import (
 )
 
 var (
+	OS, ARCH, CC  string
+	ffmpegTag     = "n7.0"
 	workingDir, _ = os.Getwd()
 	makeArgs      = []string{
 		"disable-avdevice",
@@ -48,11 +50,10 @@ func Arg(i int) (arg string) {
 }
 func help() (out string) {
 	out = `Supported Arguments:
-	--os
-	--arch
-	--cc
-	--debug
-	--help
+	--os	windows|linux
+	--arch	arm64
+	--cc	specify C compiler
+	--debug	enable ffmpeg debug mode
 `
 	return
 }
@@ -94,26 +95,15 @@ func commandExists(cmd string) bool {
 	}
 	return strings.TrimSpace(string(output)) != ""
 }
-func searchArray(array []string, str string) (index int) {
-	index = -1
-	for i, v := range array {
-		if v == str {
-			index = i
-		}
-	}
-	return
-}
-func main() {
+func preCheck() (err error) {
 	if runtime.GOOS != "linux" {
-		fmt.Println("Unsupported Build OS, Linux Only")
-		return
+		return fmt.Errorf("unsupported build os, linux only")
 	}
-	_, err := os.Stat("build/build.go")
+	_, err = os.Stat("build/build.go")
 	if err != nil {
-		fmt.Println("this must be run from the root of the repository")
-		return
+		return fmt.Errorf("this must be run from the root of the repository")
 	}
-	var OS, ARCH, CC string
+	// parse arguments
 	for i, v := range os.Args {
 		switch v[:2] {
 		case "--":
@@ -125,7 +115,12 @@ func main() {
 			case "cc":
 				CC = Arg(i + 1)
 			case "debug":
-				ret := searchArray(makeArgs, "disable-debug")
+				ret := -1
+				for i, v := range makeArgs {
+					if v == "disable-debug" {
+						ret = i
+					}
+				}
 				if ret != -1 {
 					makeArgs = append(makeArgs[:ret], makeArgs[ret+1:]...)
 				}
@@ -134,27 +129,28 @@ func main() {
 			}
 		}
 	}
+	// OS check
 	switch OS {
 	case "linux", "windows":
 		break
 	default:
-		fmt.Println("Suported OS:\n\twindows\n\tlinux")
-		return
+		return fmt.Errorf("suported os:\n\twindows\n\tlinux")
 	}
+	// ARCH check
 	switch ARCH {
 	case "amd64":
 		break
 	default:
-		fmt.Println("Unsupported ARCH")
-		fmt.Println("Supported ARCH:\n\tamd64")
-		return
+		return fmt.Errorf("supported arch: amd64")
 	}
+	// Compiler check
 	if CC == "" {
 		CC = os.Getenv("CC")
 	}
 	if CC != os.Getenv("CC") {
 		os.Setenv("CC", CC)
 	}
+	// Make Setup
 	switch OS {
 	case "linux":
 		if CC == "" {
@@ -173,63 +169,96 @@ func main() {
 			makeArgs = append([]string{"arch=x86_64"}, makeArgs...)
 		}
 	}
-	defer os.Chdir(workingDir)
-	libDir := fmt.Sprintf("%s/lib/%s/", workingDir, OS)
-	err = os.MkdirAll(libDir, 0770)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	makeArgs = append([]string{"prefix="+libDir}, makeArgs...)
+	return
+}
+func buildFFmpeg() (err error) {
+	// Soft Dependency Check
 	ok := commandExists(CC)
 	if !ok {
-		fmt.Println("CC not found")
-		return
+		return fmt.Errorf("%s not found", CC)
 	}
 	ok = commandExists("make")
 	if !ok {
-		fmt.Println("Make not found")
-		return
+		return fmt.Errorf("make not found")
 	}
 	ok = commandExists("git")
 	if !ok {
-		fmt.Println("Git not found")
-		return
+		return fmt.Errorf("git not found")
 	}
-	os.Chdir(workingDir + "/source/")
-	err = sendCmd("git", "clone", "https://github.com/FFmpeg/FFmpeg/")
+	// Git Clone
+	defer os.Chdir(workingDir)
+	sourceDir := fmt.Sprintf("%s/source/", workingDir)
+	err = os.MkdirAll(sourceDir, 0770)
 	if err != nil {
-		if err.Error() != "exit status 128" {
-			fmt.Println(err)
-			return
+		return err
+	}
+	_, err = os.Stat(sourceDir + "/FFmpeg/")
+	if err != nil {
+		os.Chdir(sourceDir)
+		err = sendCmd("git", "clone", "https://github.com/FFmpeg/FFmpeg/")
+		if err != nil {
+			return err
 		}
 	}
-	os.Chdir(workingDir + "/source/FFmpeg/")
-	err = sendCmd("git", "checkout", "n7.0")
+	// Git Tag FFmpeg tag: n7.0
+	os.Chdir(sourceDir + "/FFmpeg/")
+	err = sendCmd("git", "checkout", ffmpegTag)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		return err
 	}
-	buildDir := fmt.Sprintf("%s/source/build/ffmpeg/%s/", workingDir, OS)
+	// Create Build Directory
+	buildDir := fmt.Sprintf("%s/build/ffmpeg/%s/", sourceDir, OS)
 	err = os.MkdirAll(buildDir, 0770)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		return err
 	}
+	// Create Libriary Directory
+	libDir := fmt.Sprintf("%s/lib/%s/", workingDir, OS)
+	// Set output of Make
+	makeArgs = append([]string{"prefix=" + libDir}, makeArgs...)
+	// Build FFmpeg
 	os.Chdir(buildDir)
 	var cmd []string
 	for _, v := range makeArgs {
 		cmd = append(cmd, "--"+v)
 	}
-	err = sendCmd(workingDir+"/source/FFmpeg/configure", cmd...)
+	err = sendCmd(sourceDir+"/FFmpeg/configure", cmd...)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return fmt.Errorf("make configure failed: %s\nnasm/yasm might need to be installed", err)
+	}
+	err = os.MkdirAll(libDir, 0770)
+	if err != nil {
+		return err
 	}
 	err = sendCmd("make", "install")
 	if err != nil {
+		return fmt.Errorf("make install failed: %s", err)
+	}
+	return
+}
+func main() {
+	err := preCheck()
+	if err != nil {
 		fmt.Println(err)
 		return
 	}
-
+	_, err = os.Stat(fmt.Sprintf("%s/lib/%s/", workingDir, OS))
+	if err != nil {
+		err := buildFFmpeg()
+		if err != nil {
+			panic(err)
+		}
+	}
+	switch OS {
+	case "linux":
+		err = sendCmd("go", "build", "-ldflags=-s -w", "-o", workingDir+"/mp4-remux", workingDir+"/cli/main.go")
+	case "windows":
+		os.Setenv("CGO_ENABLED", "1")
+		os.Setenv("GOOS", "windows")
+		err = sendCmd("go", "build", "-ldflags=-s -w", "-o", workingDir+"/mp4-remux.exe", workingDir+"/cli/main.go")
+	}
+	if err != nil {
+		fmt.Println("look at lib/ffmpeg.go for any lib requirments")
+		panic(err)
+	}
 }

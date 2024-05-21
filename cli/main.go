@@ -1,18 +1,24 @@
 package main
 
-// build:
-// windows:		CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows go build -ldflags="-s -w" -o /mnt/c/Users/scull/Desktop/remux.exe remuxer/cli
-// linux:		go build -ldflags="-s -w" -o /mnt/c/Users/scull/Desktop/remux remuxer/cli
-
 import (
 	"fmt"
 	"os"
+	"strings"
+
 	ffmpeg "github.com/EthanScully/mp4-remux/lib"
 )
 
+func excName() (str string) {
+	str = os.Args[0]
+	if strings.Contains(str, string(os.PathSeparator)) {
+		slice := strings.Split(str, string(os.PathSeparator))
+		str = slice[len(slice)-1]
+	}
+	return
+}
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: ffmpeg <video-path>")
+		fmt.Printf("Usage: %s <video-path>\n", excName())
 		return
 	}
 	path := os.Args[1]
