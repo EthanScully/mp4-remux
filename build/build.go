@@ -152,7 +152,7 @@ func preCheck() (err error) {
 			CC = "x86_64-linux-gnu-gcc"
 			makeArgs = append([]string{"arch=x86_64"}, makeArgs...)
 		}
-		
+
 	case "windows":
 		makeArgs = append([]string{"enable-cross-compile"}, makeArgs...)
 		makeArgs = append([]string{"target-os=mingw32"}, makeArgs...)
@@ -227,6 +227,7 @@ func buildFFmpeg() (err error) {
 	}
 	err = sendCmd("make", "install")
 	if err != nil {
+		sendCmd("rm", "-rf", libDir)
 		return fmt.Errorf("make install failed: %s", err)
 	}
 	return
@@ -248,14 +249,18 @@ func main() {
 	if output != "" {
 		ouputPath = output
 	}
+	os.Setenv("CGO_ENABLED", "1")
+	switch ARCH {
+	case "amd64":
+		os.Setenv("GOARCH", "amd64")
+	}
 	switch OS {
 	case "linux":
-		err = sendCmd("go", "build", "-ldflags=-s -w", "-o", ouputPath, workingDir+"/cli/main.go")
+		os.Setenv("GOOS", "linux")
 	case "windows":
-		os.Setenv("CGO_ENABLED", "1")
 		os.Setenv("GOOS", "windows")
-		err = sendCmd("go", "build", "-ldflags=-s -w", "-o", ouputPath, workingDir+"/cli/main.go")
 	}
+	err = sendCmd("go", "build", "-ldflags=-s -w", "-o", ouputPath, workingDir+"/cli/main.go")
 	if err != nil {
 		fmt.Println("look at lib/ffmpeg.go for any lib requirments")
 		panic(err)
