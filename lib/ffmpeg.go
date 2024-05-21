@@ -1,12 +1,12 @@
 package ffmpeg
 
 /*
-#cgo windows CFLAGS: -Iwin/include
+#cgo windows CFLAGS: -Iwindows/include
 #cgo linux CFLAGS: -Ilinux/include
 #cgo LDFLAGS: -static
 #cgo LDFLAGS: -lavformat -lswscale -lavcodec -lavutil -lswresample
 #cgo linux LDFLAGS: -Llinux/lib -lz -lm -llzma
-#cgo windows LDFLAGS: -Lwin/lib -lbcrypt
+#cgo windows LDFLAGS: -Lwindows/lib -lbcrypt
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/imgutils.h>

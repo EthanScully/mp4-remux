@@ -7,7 +7,7 @@ package main
 import (
 	"fmt"
 	"os"
-	ffmpeg "remuxer/lib"
+	ffmpeg "github.com/EthanScully/mp4-remux/lib"
 )
 
 func main() {
