@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/EthanScully/mp4-remux/cli/file"
 	ffmpeg "github.com/EthanScully/mp4-remux/lib"
 )
 
@@ -22,7 +23,7 @@ func main() {
 		return
 	}
 	path := os.Args[1]
-	name, err := ffmpeg.ParseName(path)
+	name, err := file.ParseName(path)
 	if err != nil {
 		panic(err)
 	}
