@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	OS, ARCH, CC  string
-	ffmpegTag     = "n7.0"
-	workingDir, _ = os.Getwd()
-	makeArgs      = []string{
+	OS, ARCH, CC, output string
+	ffmpegTag            = "n7.0"
+	workingDir, _        = os.Getwd()
+	makeArgs             = []string{
 		"disable-avdevice",
 		"disable-postproc",
 		"disable-avfilter",
@@ -54,6 +54,7 @@ func help() (out string) {
 	--arch	arm64
 	--cc	specify C compiler
 	--debug	enable ffmpeg debug mode
+	--output executable output path/name
 `
 	return
 }
@@ -126,6 +127,8 @@ func preCheck() (err error) {
 				}
 			case "help":
 				fmt.Println(help())
+			case "output":
+				output = Arg(i + 1)
 			}
 		}
 	}
@@ -249,13 +252,17 @@ func main() {
 			panic(err)
 		}
 	}
+	ouputPath := "mp4-remux"
+	if output != "" {
+		ouputPath = output
+	}
 	switch OS {
 	case "linux":
-		err = sendCmd("go", "build", "-ldflags=-s -w", "-o", workingDir+"/mp4-remux", workingDir+"/cli/main.go")
+		err = sendCmd("go", "build", "-ldflags=-s -w", "-o", ouputPath, workingDir+"/cli/main.go")
 	case "windows":
 		os.Setenv("CGO_ENABLED", "1")
 		os.Setenv("GOOS", "windows")
-		err = sendCmd("go", "build", "-ldflags=-s -w", "-o", workingDir+"/mp4-remux.exe", workingDir+"/cli/main.go")
+		err = sendCmd("go", "build", "-ldflags=-s -w", "-o", ouputPath, workingDir+"/cli/main.go")
 	}
 	if err != nil {
 		fmt.Println("look at lib/ffmpeg.go for any lib requirments")
