@@ -17,6 +17,7 @@ package ffmpeg
 #include <libavutil/mem.h>
 #include <libavutil/timestamp.h>
 #include <libswscale/swscale.h>
+#include <libavutil/log.h>
 */
 import "C"
 import (
@@ -60,6 +61,7 @@ func (q *packetQueue) next() {
 }
 
 func Remux(filepath, filename string) (err error) {
+	C.av_log_set_level(C.AV_LOG_WARNING)
 	filepath = "file:" + filepath
 	var ifmt_ctx *C.AVFormatContext = nil
 	if C.avformat_open_input(&ifmt_ctx, C.CString(filepath), nil, nil) < 0 {
