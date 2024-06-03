@@ -196,31 +196,7 @@ func buildFFmpeg() (err error) {
 	if !ok {
 		return fmt.Errorf("make not found")
 	}
-	ok = commandExists("git")
-	if !ok {
-		return fmt.Errorf("git not found")
-	}
-	// Git Clone
-	defer os.Chdir(workingDir)
 	sourceDir := fmt.Sprintf("%s/source/", workingDir)
-	err = os.MkdirAll(sourceDir, 0770)
-	if err != nil {
-		return err
-	}
-	_, err = os.Stat(sourceDir + "/FFmpeg/")
-	if err != nil {
-		os.Chdir(sourceDir)
-		err = sendCmd("git", "clone", "https://github.com/FFmpeg/FFmpeg/")
-		if err != nil {
-			return err
-		}
-	}
-	// Git Tag FFmpeg tag: n7.0
-	os.Chdir(sourceDir + "/FFmpeg/")
-	err = sendCmd("git", "checkout", ffmpegTag)
-	if err != nil {
-		return err
-	}
 	// Create Build Directory
 	buildDir := fmt.Sprintf("%s/build/FFmpeg/%s-%s/", sourceDir, OS, ARCH)
 	err = os.MkdirAll(buildDir, 0770)

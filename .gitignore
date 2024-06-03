@@ -1,5 +1,5 @@
 .vscode
 lib/linux*/
 lib/windows*/
-source/
+source/build/
 mp4-remux*
