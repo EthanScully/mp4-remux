@@ -175,7 +175,7 @@ func preCheck() (err error) {
 	case "amd64":
 		makeArgs = append([]string{"arch=x86_64"}, makeArgs...)
 	}
-	if OS == runtime.GOOS && ARCH == runtime.GOARCH {
+	if OS != runtime.GOOS || ARCH != runtime.GOARCH {
 		makeArgs = append([]string{"enable-cross-compile"}, makeArgs...)
 	}
 	// Set Environment Variables
