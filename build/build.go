@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	OS, ARCH, CC, output string
-	ffmpegTag            = "n7.0"
-	workingDir, _        = os.Getwd()
-	makeArgs             = []string{
+	OS, ARCH, AR, CC, output string
+	ffmpegTag                = "n7.0"
+	workingDir, _            = os.Getwd()
+	makeArgs                 = []string{
 		"disable-avdevice",
 		"disable-postproc",
 		"disable-avfilter",
@@ -105,6 +105,8 @@ func preCheck() (err error) {
 		return fmt.Errorf("this must be run from the root of the repository")
 	}
 	// parse arguments
+	OS = runtime.GOOS
+	ARCH = runtime.GOARCH
 	for i, v := range os.Args {
 		switch v[:2] {
 		case "--":
@@ -130,40 +132,58 @@ func preCheck() (err error) {
 			}
 		}
 	}
-	// OS check
-	switch OS {
-	case "linux", "windows":
-		break
-	default:
-		return fmt.Errorf("suported os:\n\twindows\n\tlinux")
-	}
-	// ARCH check
-	switch ARCH {
-	case "amd64":
-		break
-	default:
-		return fmt.Errorf("supported arch: amd64")
-	}
 	// Make Setup
 	switch OS {
 	case "linux":
+		makeArgs = append([]string{"target-os=linux"}, makeArgs...)
+		runtimeArch := runtime.GOARCH
 		switch ARCH {
+		case runtimeArch:
+			CC = "gcc"
+			AR = "ar"
 		case "amd64":
 			CC = "x86_64-linux-gnu-gcc"
-			makeArgs = append([]string{"arch=x86_64"}, makeArgs...)
+			AR = "x86_64-linux-gnu-ar"
+			makeArgs = append([]string{"cross-prefix=x86_64-linux-gnu-"}, makeArgs...)
+		case "arm64":
+			AR = "aarch64-linux-gnu-ar"
+			CC = "aarch64-linux-gnu-gcc"
+			makeArgs = append([]string{"cross-prefix=aarch64-linux-gnu-"}, makeArgs...)
+		default:
+			return fmt.Errorf("amd64 and arm64 support only")
 		}
-
 	case "windows":
-		makeArgs = append([]string{"enable-cross-compile"}, makeArgs...)
 		makeArgs = append([]string{"target-os=mingw32"}, makeArgs...)
 		switch ARCH {
 		case "amd64":
+			AR = "x86_64-w64-mingw32-ar"
 			CC = "x86_64-w64-mingw32-gcc"
 			makeArgs = append([]string{"cross-prefix=x86_64-w64-mingw32-"}, makeArgs...)
-			makeArgs = append([]string{"arch=x86_64"}, makeArgs...)
+		case "arm64":
+			AR = "aarch64-w64-mingw32-ar"
+			CC = "aarch64-w64-mingw32-gcc"
+			makeArgs = append([]string{"cross-prefix=aarch64-w64-mingw32-"}, makeArgs...)
+		default:
+			return fmt.Errorf("amd64 and arm64 support only")
 		}
+	default:
+		return fmt.Errorf("linux and windows support only")
 	}
+	switch ARCH {
+	case "arm64":
+		makeArgs = append([]string{"arch=aarch64"}, makeArgs...)
+	case "amd64":
+		makeArgs = append([]string{"arch=x86_64"}, makeArgs...)
+	}
+	if OS == runtime.GOOS && ARCH == runtime.GOARCH {
+		makeArgs = append([]string{"enable-cross-compile"}, makeArgs...)
+	}
+	// Set Environment Variables
+	os.Setenv("GOOS", OS)
+	os.Setenv("GOARCH", ARCH)
 	os.Setenv("CC", CC)
+	os.Setenv("AR", AR)
+	os.Setenv("CGO_ENABLED", "1")
 	return
 }
 func buildFFmpeg() (err error) {
@@ -202,13 +222,13 @@ func buildFFmpeg() (err error) {
 		return err
 	}
 	// Create Build Directory
-	buildDir := fmt.Sprintf("%s/build/FFmpeg/%s/", sourceDir, OS)
+	buildDir := fmt.Sprintf("%s/build/FFmpeg/%s-%s/", sourceDir, OS, ARCH)
 	err = os.MkdirAll(buildDir, 0770)
 	if err != nil {
 		return err
 	}
 	// Create Libriary Directory
-	libDir := fmt.Sprintf("%s/lib/%s/", workingDir, OS)
+	libDir := fmt.Sprintf("%s/lib/%s-%s/", workingDir, OS, ARCH)
 	// Set output of Make
 	makeArgs = append([]string{"prefix=" + libDir}, makeArgs...)
 	// Build FFmpeg
@@ -220,6 +240,11 @@ func buildFFmpeg() (err error) {
 	err = sendCmd(sourceDir+"/FFmpeg/configure", cmd...)
 	if err != nil {
 		return fmt.Errorf("make configure failed: %s\nnasm/yasm might need to be installed", err)
+	}
+
+	err = sendCmd("make", fmt.Sprintf("-j%d", runtime.NumCPU()))
+	if err != nil {
+		return fmt.Errorf("make failed: %s", err)
 	}
 	err = os.MkdirAll(libDir, 0770)
 	if err != nil {
@@ -238,27 +263,16 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	_, err = os.Stat(fmt.Sprintf("%s/lib/%s/", workingDir, OS))
+	_, err = os.Stat(fmt.Sprintf("%s/lib/%s-%s/", workingDir, OS, ARCH))
 	if err != nil {
 		err := buildFFmpeg()
 		if err != nil {
 			panic(err)
 		}
 	}
-	ouputPath := "mp4-remux"
+	ouputPath := fmt.Sprintf("mp4-remux-%s-%s", OS, ARCH)
 	if output != "" {
 		ouputPath = output
-	}
-	os.Setenv("CGO_ENABLED", "1")
-	switch ARCH {
-	case "amd64":
-		os.Setenv("GOARCH", "amd64")
-	}
-	switch OS {
-	case "linux":
-		os.Setenv("GOOS", "linux")
-	case "windows":
-		os.Setenv("GOOS", "windows")
 	}
 	err = sendCmd("go", "build", "-ldflags=-s -w", "-o", ouputPath, workingDir+"/cli/main.go")
 	if err != nil {

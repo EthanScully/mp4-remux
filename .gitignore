@@ -1,4 +1,4 @@
 .vscode
-lib/linux/
-lib/windows/
+lib/linux*/
+lib/windows*/
 source/
