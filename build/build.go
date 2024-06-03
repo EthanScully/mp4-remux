@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -10,8 +12,7 @@ import (
 )
 
 var (
-	OS, ARCH, AR, CC, output string
-	ffmpegTag                = "n7.0"
+	OS, ARCH, AR, CC, OUTPUT string
 	workingDir, _            = os.Getwd()
 	makeArgs                 = []string{
 		"disable-avdevice",
@@ -42,7 +43,7 @@ var (
 	}
 )
 
-func Arg(i int) (arg string) {
+func arg(i int) (arg string) {
 	if len(os.Args) > i {
 		arg = os.Args[i]
 	}
@@ -52,10 +53,8 @@ func help() (out string) {
 	out = `Supported Arguments:
 	--os		windows|linux
 	--arch		arm64
-	--cc		specify C compiler
 	--debug		enable ffmpeg debug mode
-	--output	executable output path/name
-`
+	--output	executable output path/name`
 	return
 }
 func sendCmd(name string, arg ...string) error {
@@ -112,9 +111,9 @@ func preCheck() (err error) {
 		case "--":
 			switch v[2:] {
 			case "os":
-				OS = Arg(i + 1)
+				OS = arg(i + 1)
 			case "arch":
-				ARCH = Arg(i + 1)
+				ARCH = arg(i + 1)
 			case "debug":
 				ret := -1
 				for i, v := range makeArgs {
@@ -128,7 +127,7 @@ func preCheck() (err error) {
 			case "help":
 				fmt.Println(help())
 			case "output":
-				output = Arg(i + 1)
+				OUTPUT = arg(i + 1)
 			}
 		}
 	}
@@ -233,7 +232,59 @@ func buildFFmpeg() (err error) {
 	}
 	return
 }
+func getmingw(key string) (err error) {
+	var ex bool
+	if key == "name" {
+		key = "name"
+	} else if key == "file" {
+		key = "name"
+		ex = true
+	} else {
+		key = "browser_download_url"
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+		}
+	}()
+	url := "https://api.github.com/repos/mstorsjo/llvm-mingw/releases/latest"
+	resp, err := http.DefaultClient.Get(url)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+	var api any
+	err = json.Unmarshal(data, &api)
+	if err != nil {
+		return
+	}
+	var output string
+	assets := api.(map[string]any)["assets"].([]any)
+	for _, v := range assets {
+		name := v.(map[string]any)["name"].(string)
+		if strings.Contains(name, "ucrt") && strings.Contains(name, "ubuntu") && strings.Contains(name, "x86_64") {
+			output = v.(map[string]any)[key].(string)
+			break
+		}
+	}
+	if ex {
+		output = strings.Replace(output, ".tar.xz", "", 1)
+	}
+	fmt.Println(output)
+	return
+}
 func main() {
+	if arg(1) == "llvm-mingw" {
+		err := getmingw(arg(2))
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
 	err := preCheck()
 	if err != nil {
 		fmt.Println(err)
@@ -250,8 +301,8 @@ func main() {
 	if OS == "windows" {
 		ouputPath = ouputPath + ".exe"
 	}
-	if output != "" {
-		ouputPath = output
+	if OUTPUT != "" {
+		ouputPath = OUTPUT
 	}
 	err = sendCmd("go", "build", "-ldflags=-s -w", "-o", ouputPath, workingDir+"/cli/main.go")
 	if err != nil {

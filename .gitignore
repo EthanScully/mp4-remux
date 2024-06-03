@@ -3,3 +3,4 @@ lib/linux*/
 lib/windows*/
 source/build/
 mp4-remux*
+llvm*
