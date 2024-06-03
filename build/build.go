@@ -271,6 +271,9 @@ func main() {
 		}
 	}
 	ouputPath := fmt.Sprintf("mp4-remux-%s-%s", OS, ARCH)
+	if OS == "windows" {
+		ouputPath = ouputPath + ".exe"
+	}
 	if output != "" {
 		ouputPath = output
 	}
