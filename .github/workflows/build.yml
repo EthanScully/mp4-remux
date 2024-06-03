@@ -24,7 +24,7 @@ jobs:
         -t debian:sid bash -c '
         apt update
         apt upgrade -y
-        apt install build-essential git make nasm yasm zlib1g-dev liblzma-dev golang mingw-w64 wget tar -y
+        apt install build-essential git make nasm yasm zlib1g-dev liblzma-dev golang mingw-w64 wget tar gcc-aarch64-linux-gnu -y
         git config --global --add safe.directory "*"
         go run build/build.go
         go run build/build.go --arch arm64

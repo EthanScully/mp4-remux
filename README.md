@@ -21,7 +21,7 @@ docker run --rm \
         -t debian:sid bash -c '
         apt update
         apt upgrade -y
-        apt install build-essential git make nasm yasm zlib1g-dev liblzma-dev golang mingw-w64 -y
+        apt install build-essential git make nasm yasm zlib1g-dev liblzma-dev golang mingw-w64 gcc-aarch64-linux-gnu -y
         git config --global --add safe.directory "*"
         go run build/build.go --os linux --arch amd64 --output mp4-remux-linux
         go run build/build.go --os windows --arch amd64 --output mp4-remux-win.exe'
