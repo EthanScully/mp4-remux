@@ -202,10 +202,6 @@ func buildFFmpeg() (err error) {
 	}
 	// Create Libriary Directory
 	libDir := fmt.Sprintf("%s/lib/%s-%s", workingDir, OS, ARCH)
-	err = os.Mkdir(libDir, 0770)
-	if err != nil && !strings.Contains(err.Error(), "exists") {
-		return
-	}
 	// Set install directory of Make
 	makeArgs = append([]string{"prefix=" + libDir}, makeArgs...)
 	// Build FFmpeg
@@ -225,6 +221,10 @@ func buildFFmpeg() (err error) {
 	err = sendCmd("make", fmt.Sprintf("-j%d", runtime.NumCPU()))
 	if err != nil {
 		return fmt.Errorf("make failed: %s", err)
+	}
+	err = os.Mkdir(libDir, 0770)
+	if err != nil && !strings.Contains(err.Error(), "exists") {
+		return
 	}
 	err = sendCmd("make", "install")
 	if err != nil {

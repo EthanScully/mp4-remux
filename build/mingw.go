@@ -88,7 +88,7 @@ func getmingw() (err error) {
 		return
 	}
 	for _, v := range files {
-		sendCmd("mv", v.Name(), "/usr/local/")
+		sendCmd("cp", "-r", v.Name(), "/usr/local/")
 	}
 	err = os.Chdir(buildDir)
 	if err != nil {
