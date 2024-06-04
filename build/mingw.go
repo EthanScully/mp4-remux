@@ -44,6 +44,7 @@ func getmingw() (err error) {
 	if err != nil && !strings.Contains(err.Error(), "exists") {
 		return
 	}
+	defer os.Chdir(workingDir)
 	err = os.Chdir(buildDir)
 	if err != nil {
 		return
@@ -60,7 +61,10 @@ func getmingw() (err error) {
 	for {
 		n, err := resp.Body.Read(data)
 		if err != nil {
-			break
+			if err == io.EOF {
+				break
+			}
+			return err
 		}
 		file.Write(data[:n])
 	}
@@ -79,14 +83,11 @@ func getmingw() (err error) {
 	if err != nil {
 		return
 	}
-	files, err := os.ReadDir(buildDir + "/" + name)
+	files, err := os.ReadDir(".")
 	if err != nil {
 		return
 	}
 	for _, v := range files {
-		if v.Name() == "share" {
-			continue
-		}
 		sendCmd("mv", v.Name(), "/usr/local/")
 	}
 	err = os.Chdir(buildDir)

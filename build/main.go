@@ -97,7 +97,7 @@ func preCheck() (err error) {
 	if runtime.GOOS != "linux" {
 		return fmt.Errorf("unsupported build os, linux only")
 	}
-	_, err = os.Stat("build/build.go")
+	_, err = os.Stat("build/main.go")
 	if err != nil {
 		return fmt.Errorf("this must be run from the root of the repository")
 	}
@@ -234,7 +234,7 @@ func buildFFmpeg() (err error) {
 	return
 }
 func main() {
-	if arg(1) == "llvm-mingw" {
+	if arg(1) == "mingw" {
 		err := getmingw()
 		if err != nil {
 			panic(err)

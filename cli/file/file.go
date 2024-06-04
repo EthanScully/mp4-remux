@@ -32,12 +32,13 @@ func fileCheck(name string, or ...int) (final string, err error) {
 	}
 	if num == 0 {
 		final = name + ".mp4"
-		return
 	} else {
 		final = fmt.Sprintf("%s(%d).mp4", name, num)
-		return
 	}
+	return
 }
+
+// Determines ouput filename with .mp4 attached, if file exists, it intelligently returns new name
 func ParseName(path string) (filename string, err error) {
 	if len(path) < 5 {
 		err = fmt.Errorf("path length")
