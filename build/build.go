@@ -195,17 +195,17 @@ func buildFFmpeg() (err error) {
 	if !ok {
 		return fmt.Errorf("make not found")
 	}
-	sourceDir := fmt.Sprintf("%s/source", workingDir)
+
 	// Create Build Directory
-	buildDir := fmt.Sprintf("%s/build/FFmpeg/%s-%s", sourceDir, OS, ARCH)
+	buildDir := fmt.Sprintf("%s/bin/FFmpeg/%s-%s", workingDir, OS, ARCH)
 	err = os.MkdirAll(buildDir, 0770)
-	if err != nil  && !strings.Contains(err.Error(), "exists"){
+	if err != nil && !strings.Contains(err.Error(), "exists") {
 		return
 	}
 	// Create Libriary Directory
 	libDir := fmt.Sprintf("%s/lib/%s-%s", workingDir, OS, ARCH)
 	err = os.Mkdir(libDir, 0770)
-	if err != nil  && !strings.Contains(err.Error(), "exists"){
+	if err != nil && !strings.Contains(err.Error(), "exists") {
 		return
 	}
 	// Set install directory of Make
@@ -220,7 +220,7 @@ func buildFFmpeg() (err error) {
 	for _, v := range makeArgs {
 		cmd = append(cmd, "--"+v)
 	}
-	err = sendCmd(sourceDir+"/FFmpeg/configure", cmd...)
+	err = sendCmd(fmt.Sprintf("%s/source/FFmpeg/configure", workingDir), cmd...)
 	if err != nil {
 		return fmt.Errorf("make configure failed: %s\nnasm/yasm might need to be installed", err)
 	}
@@ -267,7 +267,7 @@ func getmingw() (err error) {
 	}
 	buildDir := fmt.Sprintf("%s/source/build/", workingDir)
 	err = os.Mkdir(buildDir, 0770)
-	if err != nil  && !strings.Contains(err.Error(), "exists"){
+	if err != nil && !strings.Contains(err.Error(), "exists") {
 		return
 	}
 	err = os.Chdir(buildDir)
@@ -346,7 +346,7 @@ func main() {
 	}
 	ouputPath := fmt.Sprintf("bin/mp4-remux-%s-%s", OS, ARCH)
 	err = os.Mkdir("bin", 0770)
-	if err != nil  && !strings.Contains(err.Error(), "exists"){
+	if err != nil && !strings.Contains(err.Error(), "exists") {
 		panic(err)
 	}
 	if OS == "windows" {
