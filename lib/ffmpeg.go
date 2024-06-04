@@ -111,7 +111,7 @@ func Remux(filepath, filename string) (err error) {
 			switch in_codecpar.codec_id {
 			case C.AV_CODEC_ID_AV1, C.AV_CODEC_ID_H264, C.AV_CODEC_ID_HEVC:
 			default:
-				C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_WARNING, C.CString(fmt.Sprintf("video stream #%d not supported, skipping... \n", i)))
+				C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_ERROR, C.CString(fmt.Sprintf("video stream #%d not supported, skipping... \n", i)))
 				streamMapping[i] = -1
 				continue
 			}
@@ -120,7 +120,7 @@ func Remux(filepath, filename string) (err error) {
 			switch in_codecpar.codec_id {
 			case C.AV_CODEC_ID_AAC, C.AV_CODEC_ID_AC3, C.AV_CODEC_ID_DTS:
 			default:
-				C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_WARNING, C.CString(fmt.Sprintf("audio stream #%d not supported, skipping... \n", i)))
+				C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_ERROR, C.CString(fmt.Sprintf("audio stream #%d not supported, skipping... \n", i)))
 				streamMapping[i] = -1
 				continue
 			}
