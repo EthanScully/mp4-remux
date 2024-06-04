@@ -18,10 +18,14 @@ package ffmpeg
 #include <libavutil/timestamp.h>
 #include <libswscale/swscale.h>
 #include <libavutil/log.h>
+void av_log_wrapper(void* avcl, int level, char* string) {
+	av_log(avcl, level, "%s", string);
+}
 */
 import "C"
 import (
 	"fmt"
+	"os"
 	"slices"
 	"unsafe"
 )
@@ -61,6 +65,7 @@ func (q *packetQueue) next() {
 }
 
 func Remux(filepath, filename string) (err error) {
+	// Init
 	filepath = "file:" + filepath
 	var ifmt_ctx *C.AVFormatContext = nil
 	if C.avformat_open_input(&ifmt_ctx, C.CString(filepath), nil, nil) < 0 {
@@ -79,34 +84,50 @@ func Remux(filepath, filename string) (err error) {
 		return
 	}
 	defer C.avformat_free_context(ofmt_ctx)
+	// //
+	// Map Streams
+	// //
 	stream_mapping_size := ifmt_ctx.nb_streams
 	var stream_mapping *C.int = nil
 	stream_mapping = (*C.int)(C.av_calloc(C.size_t(stream_mapping_size), (C.size_t)(unsafe.Sizeof(*stream_mapping))))
 	if stream_mapping == nil {
-		err = fmt.Errorf("could not allocate stream mapping / OUT OF MEMORY")
+		err = fmt.Errorf("could not allocate stream mapping")
 		return
 	}
 	defer C.av_freep(unsafe.Pointer(&stream_mapping))
-	var ofmt *C.AVOutputFormat = nil
-	ofmt = ofmt_ctx.oformat
-	stream_index := C.int(0)
-	for i := 0; i < int(ifmt_ctx.nb_streams); i++ {
-		var out_stream *C.AVStream
-		var in_stream *C.AVStream = unsafe.Slice(ifmt_ctx.streams, i+1)[i]
-		var in_codecpar *C.AVCodecParameters = in_stream.codecpar
+	ofmt := ofmt_ctx.oformat
+	var stream_index C.int
+	for i := 0; i < int(stream_mapping_size); i++ {
+		in_stream := unsafe.Slice(ifmt_ctx.streams, i+1)[i]
+		in_codecpar := in_stream.codecpar
 		streamMapping := unsafe.Slice(stream_mapping, i+1)
-		if in_codecpar.codec_type != C.AVMEDIA_TYPE_AUDIO && in_codecpar.codec_type != C.AVMEDIA_TYPE_VIDEO {
+		switch in_codecpar.codec_type {
+		case C.AVMEDIA_TYPE_AUDIO, C.AVMEDIA_TYPE_VIDEO:
+		default:
 			streamMapping[i] = -1
 			continue
 		}
-		if in_codecpar.codec_type == C.AVMEDIA_TYPE_VIDEO && (in_codecpar.codec_id != 225 && in_codecpar.codec_id != 27 && in_codecpar.codec_id != 173) {
-			fmt.Printf("video stream #%d not supported, skipping... \n", i)
-			streamMapping[i] = -1
-			continue
+		if in_codecpar.codec_type == C.AVMEDIA_TYPE_VIDEO {
+			switch in_codecpar.codec_id {
+			case C.AV_CODEC_ID_AV1, C.AV_CODEC_ID_H264, C.AV_CODEC_ID_HEVC:
+			default:
+				C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_WARNING, C.CString(fmt.Sprintf("video stream #%d not supported, skipping... \n", i)))
+				streamMapping[i] = -1
+				continue
+			}
+		}
+		if in_codecpar.codec_type == C.AVMEDIA_TYPE_AUDIO {
+			switch in_codecpar.codec_id {
+			case C.AV_CODEC_ID_AAC, C.AV_CODEC_ID_AC3, C.AV_CODEC_ID_DTS:
+			default:
+				C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_WARNING, C.CString(fmt.Sprintf("audio stream #%d not supported, skipping... \n", i)))
+				streamMapping[i] = -1
+				continue
+			}
 		}
 		streamMapping[i] = stream_index
 		stream_index++
-		out_stream = C.avformat_new_stream(ofmt_ctx, nil)
+		out_stream := C.avformat_new_stream(ofmt_ctx, nil)
 		if out_stream == nil {
 			err = fmt.Errorf("failed allocating output stream")
 			return
@@ -117,12 +138,14 @@ func Remux(filepath, filename string) (err error) {
 		}
 		out_stream.codecpar.codec_tag = 0
 	}
+	// Create Ouput File
 	if (ofmt.flags & C.AVFMT_NOFILE) == 0 {
 		if C.avio_open(&ofmt_ctx.pb, C.CString(filename), C.AVIO_FLAG_WRITE) < 0 {
 			err = fmt.Errorf("could not open output file \"%s\"", filename)
 			return
 		}
 	}
+	// Specify faststart
 	defer C.avio_closep(&ofmt_ctx.pb)
 	var myDict *C.AVDictionary
 	C.av_dict_set(&myDict, C.CString("movflags"), C.CString("+faststart"), 0)
@@ -130,9 +153,7 @@ func Remux(filepath, filename string) (err error) {
 		err = fmt.Errorf("error occurred when opening output file")
 		return
 	}
-	// //
-	// dts and pts processing
-	// //
+	// Init Packet Queue
 	var pq packetQueue
 	pq.init(100, int(stream_mapping_size))
 	defer pq.free()
@@ -142,9 +163,12 @@ func Remux(filepath, filename string) (err error) {
 			pq.last = i
 			break
 		}
-		pq.pts[pq.packets[i].stream_index] = append(pq.pts[pq.packets[i].stream_index], pq.packets[i].pts)
+		index := pq.packets[i].stream_index
+		pq.pts[index] = append(pq.pts[index], pq.packets[i].pts)
 	}
-	// determine offsets
+	// //
+	// dts and pts processing
+	// //
 	var dtsOffset C.int64_t
 	var offset C.int64_t = pq.pts[0][0]
 	var ptsOffset C.int64_t
@@ -170,8 +194,7 @@ func Remux(filepath, filename string) (err error) {
 		}
 	}
 	if offset == C.AV_NOPTS_VALUE {
-		fmt.Println(pq.pts)
-		panic("first pts is AV_NOPTS_VALUE")
+		return fmt.Errorf("first pts is AV_NOPTS_VALUE: %v", pq.pts)
 	}
 	for i, v := range pq.pts {
 		if streamMapping[i] == -1 {
@@ -201,6 +224,9 @@ func Remux(filepath, filename string) (err error) {
 	for i := range lastdts {
 		lastdts[i] = -1
 	}
+	// //
+	// muxing
+	// //
 	read := func() {
 		if C.av_read_frame(ifmt_ctx, pq.packets[pq.pos]) < 0 {
 			if !pq.done {
@@ -208,8 +234,9 @@ func Remux(filepath, filename string) (err error) {
 				pq.last = pq.pos
 			}
 		} else {
-			pq.pts[pq.packets[pq.pos].stream_index] = append(pq.pts[pq.packets[pq.pos].stream_index], pq.packets[pq.pos].pts)
-			slices.Sort(pq.pts[pq.packets[pq.pos].stream_index])
+			index := pq.packets[pq.pos].stream_index
+			pq.pts[index] = append(pq.pts[index], pq.packets[pq.pos].pts)
+			slices.Sort(pq.pts[index])
 		}
 		pq.next()
 	}
@@ -228,7 +255,7 @@ func Remux(filepath, filename string) (err error) {
 		pkt.dts = pq.pts[pkt.stream_index][0] + dtsOffset
 		pq.pts[pkt.stream_index] = pq.pts[pkt.stream_index][1:]
 		if pkt.dts == lastdts[pkt.stream_index] {
-			fmt.Println("added offset of 1")
+			C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_INFO, C.CString("increasing pkt offset by 1"))
 			pkt.dts++
 			pkt.pts++
 			ptsOffset++
@@ -237,11 +264,11 @@ func Remux(filepath, filename string) (err error) {
 		if pkt.pts < pkt.dts {
 			diff := pkt.dts - pkt.pts
 			if diff > avgDiff*10 {
-				fmt.Println("dropped packet: ", packet)
+				C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_ERROR, C.CString(fmt.Sprintf("dts > pts, %v:%v, dropping packet", pkt.dts, pkt.pts)))
 				read()
 				continue
 			}
-			fmt.Println("added pts offset of", diff)
+			C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_INFO, C.CString(fmt.Sprintf("dts > pts, %v:%v, added pts offset: %v", pkt.dts, pkt.pts, diff)))
 			ptsOffset += diff
 			pkt.pts += diff
 		}
@@ -253,14 +280,13 @@ func Remux(filepath, filename string) (err error) {
 		}
 		pkt.pos = -1
 		if C.av_interleaved_write_frame(ofmt_ctx, pkt) < 0 {
-			fmt.Println(pq.pts[pkt.stream_index])
-			err = fmt.Errorf("error muxing packet")
+			err = fmt.Errorf("error muxing packet:%v", pq.pts[pkt.stream_index])
 			break
 		}
 		read()
 	}
 	C.av_write_trailer(ofmt_ctx)
-	fmt.Printf("Total Packets: %v, pts & dts offset: %v,%v\n", packet, ptsOffset, dtsOffset)
+	C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_VERBOSE, C.CString(fmt.Sprintf("Total Packets: %v, pts & dts offset: %v,%v\n", packet, ptsOffset, dtsOffset)))
 	return
 }
 func rescalePacket(pkt *C.AVPacket, ifmt_ctx, ofmt_ctx *C.AVFormatContext, stream_mapping_size C.uint, stream_mapping *C.int) (err error) {
@@ -278,4 +304,14 @@ func rescalePacket(pkt *C.AVPacket, ifmt_ctx, ofmt_ctx *C.AVFormatContext, strea
 }
 func init() {
 	C.av_log_set_level(C.AV_LOG_ERROR)
+	if len(os.Args) > 2 {
+		switch os.Args[2] {
+		case "-v":
+			C.av_log_set_level(C.AV_LOG_VERBOSE)
+		case "-vv":
+			C.av_log_set_level(C.AV_LOG_DEBUG)
+		case "-vvv":
+			C.av_log_set_level(C.AV_LOG_MAX_OFFSET)
+		}
+	}
 }
