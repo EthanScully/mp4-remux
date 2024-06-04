@@ -173,18 +173,18 @@ func Remux(filepath, filename string) (err error) {
 	var offset C.int64_t = pq.pts[0][0]
 	var ptsOffset C.int64_t
 	streamMapping := unsafe.Slice(stream_mapping, stream_mapping_size)
-	for i, v := range pq.pts {
-		if len(v) == 0 {
+	for i, ptsList := range pq.pts {
+		if len(ptsList) == 0 {
 			continue
 		}
 		if streamMapping[i] == -1 {
 			continue
 		}
-		sorted := make([]C.int64_t, len(v))
-		copy(sorted, v)
+		sorted := make([]C.int64_t, len(ptsList))
+		copy(sorted, ptsList)
 		slices.Sort(sorted)
-		for j, w := range sorted {
-			diff := v[j] - w
+		for j, pts := range sorted {
+			diff := ptsList[j] - pts
 			if diff < dtsOffset {
 				dtsOffset = diff
 			}
@@ -196,11 +196,11 @@ func Remux(filepath, filename string) (err error) {
 	if offset == C.AV_NOPTS_VALUE {
 		return fmt.Errorf("first pts is AV_NOPTS_VALUE: %v", pq.pts)
 	}
-	for i, v := range pq.pts {
+	for i, ptsList := range pq.pts {
 		if streamMapping[i] == -1 {
 			continue
 		}
-		slices.Sort(v)
+		slices.Sort(ptsList)
 	}
 	var sumDiff float64
 	var sumDiffCount float64
