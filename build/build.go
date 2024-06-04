@@ -199,21 +199,21 @@ func buildFFmpeg() (err error) {
 	// Create Build Directory
 	buildDir := fmt.Sprintf("%s/build/FFmpeg/%s-%s", sourceDir, OS, ARCH)
 	err = os.MkdirAll(buildDir, 0770)
-	if err != nil {
-		return err
+	if err != nil  && !strings.Contains(err.Error(), "exists"){
+		return
 	}
 	// Create Libriary Directory
 	libDir := fmt.Sprintf("%s/lib/%s-%s", workingDir, OS, ARCH)
-	err = os.MkdirAll(libDir, 0770)
-	if err != nil {
-		return err
+	err = os.Mkdir(libDir, 0770)
+	if err != nil  && !strings.Contains(err.Error(), "exists"){
+		return
 	}
 	// Set install directory of Make
 	makeArgs = append([]string{"prefix=" + libDir}, makeArgs...)
 	// Build FFmpeg
 	err = os.Chdir(buildDir)
 	if err != nil {
-		return err
+		return
 	}
 	defer os.Chdir(workingDir)
 	var cmd []string
@@ -266,9 +266,9 @@ func getmingw() (err error) {
 		}
 	}
 	buildDir := fmt.Sprintf("%s/source/build/", workingDir)
-	err = os.MkdirAll(buildDir, 0770)
-	if err != nil {
-		fmt.Println(err)
+	err = os.Mkdir(buildDir, 0770)
+	if err != nil  && !strings.Contains(err.Error(), "exists"){
+		return
 	}
 	err = os.Chdir(buildDir)
 	if err != nil {
@@ -346,7 +346,7 @@ func main() {
 	}
 	ouputPath := fmt.Sprintf("bin/mp4-remux-%s-%s", OS, ARCH)
 	err = os.Mkdir("bin", 0770)
-	if err != nil {
+	if err != nil  && !strings.Contains(err.Error(), "exists"){
 		panic(err)
 	}
 	if OS == "windows" {
