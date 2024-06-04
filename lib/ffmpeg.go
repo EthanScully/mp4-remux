@@ -61,7 +61,6 @@ func (q *packetQueue) next() {
 }
 
 func Remux(filepath, filename string) (err error) {
-	C.av_log_set_level(C.AV_LOG_WARNING)
 	filepath = "file:" + filepath
 	var ifmt_ctx *C.AVFormatContext = nil
 	if C.avformat_open_input(&ifmt_ctx, C.CString(filepath), nil, nil) < 0 {
@@ -276,4 +275,7 @@ func rescalePacket(pkt *C.AVPacket, ifmt_ctx, ofmt_ctx *C.AVFormatContext, strea
 	out_stream = unsafe.Slice(ofmt_ctx.streams, pkt.stream_index+1)[pkt.stream_index]
 	C.av_packet_rescale_ts(pkt, in_stream.time_base, out_stream.time_base)
 	return
+}
+func init() {
+	C.av_log_set_level(C.AV_LOG_WARNING)
 }
