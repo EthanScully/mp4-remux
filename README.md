@@ -11,10 +11,10 @@ only supports building on linux right now
 
 when in repository directory:
 ```BASH
-go run build/build.go
-go run build/build.go --arch arm64
-go run build/build.go --os windows
-go run build/build.go --os windows --arch arm64
+go run build/main.go
+go run build/main.go --arch arm64
+go run build/main.go --os windows
+go run build/main.go --os windows --arch arm64
 ```
 ### Docker
 ```BASH
@@ -23,9 +23,9 @@ docker run --rm \
         -t debian:sid bash -c '
         apt update
         apt install build-essential make nasm yasm zlib1g-dev liblzma-dev golang gcc-aarch64-linux-gnu tar ca-certificates -y
-        go run build/build.go llvm-mingw
-        go run build/build.go
-        go run build/build.go --arch arm64
-        go run build/build.go --os windows
-        go run build/build.go --os windows --arch arm64'
+        go run build/main.go llvm-mingw
+        go run build/main.go
+        go run build/main.go --arch arm64
+        go run build/main.go --os windows
+        go run build/main.go --os windows --arch arm64'
 ```
