@@ -29,7 +29,7 @@ var (
 		"enable-demuxer=m4v",
 		"enable-demuxer=mpegts",
 		"enable-muxer=mp4",
-		"enable-decoder=aac",
+		//"enable-decoder=aac",
 		"enable-parser=aac",
 		"enable-parser=ac3",
 		"enable-parser=hdr",
