@@ -277,5 +277,5 @@ func rescalePacket(pkt *C.AVPacket, ifmt_ctx, ofmt_ctx *C.AVFormatContext, strea
 	return
 }
 func init() {
-	C.av_log_set_level(C.AV_LOG_WARNING)
+	C.av_log_set_level(C.AV_LOG_ERROR)
 }
