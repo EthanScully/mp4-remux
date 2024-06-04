@@ -34,7 +34,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            mp4-remux-linux-amd64
-            mp4-remux-linux-arm64
-            mp4-remux-windows-amd64.exe
-            mp4-remux-windows-arm64.exe
+            bin/mp4-remux-linux-amd64
+            bin/mp4-remux-linux-arm64
+            bin/mp4-remux-windows-amd64.exe
+            bin/mp4-remux-windows-arm64.exe

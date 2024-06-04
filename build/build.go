@@ -204,7 +204,11 @@ func buildFFmpeg() (err error) {
 	}
 	// Create Libriary Directory
 	libDir := fmt.Sprintf("%s/lib/%s-%s", workingDir, OS, ARCH)
-	// Set output of Make
+	err = os.MkdirAll(libDir, 0770)
+	if err != nil {
+		return err
+	}
+	// Set install directory of Make
 	makeArgs = append([]string{"prefix=" + libDir}, makeArgs...)
 	// Build FFmpeg
 	err = os.Chdir(buildDir)
@@ -223,10 +227,6 @@ func buildFFmpeg() (err error) {
 	err = sendCmd("make", fmt.Sprintf("-j%d", runtime.NumCPU()))
 	if err != nil {
 		return fmt.Errorf("make failed: %s", err)
-	}
-	err = os.MkdirAll(libDir, 0770)
-	if err != nil {
-		return err
 	}
 	err = sendCmd("make", "install")
 	if err != nil {
@@ -335,8 +335,7 @@ func main() {
 	}
 	err := preCheck()
 	if err != nil {
-		fmt.Println(err)
-		return
+		panic(err)
 	}
 	_, err = os.Stat(fmt.Sprintf("%s/lib/%s-%s", workingDir, OS, ARCH))
 	if err != nil {
@@ -345,7 +344,11 @@ func main() {
 			panic(err)
 		}
 	}
-	ouputPath := fmt.Sprintf("mp4-remux-%s-%s", OS, ARCH)
+	ouputPath := fmt.Sprintf("bin/mp4-remux-%s-%s", OS, ARCH)
+	err = os.Mkdir("bin", 0770)
+	if err != nil {
+		panic(err)
+	}
 	if OS == "windows" {
 		ouputPath = ouputPath + ".exe"
 	}
