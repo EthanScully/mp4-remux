@@ -19,11 +19,8 @@ func main() {
 		return
 	}
 	path := os.Args[1]
-	filename, err := file.ParseName(path)
-	if err != nil {
-		panic(err)
-	}
-	err = ffmpeg.Remux(path, filename)
+	filename := file.ParseName(path)
+	err := ffmpeg.Remux(path, filename)
 	if err != nil {
 		panic(err)
 	}

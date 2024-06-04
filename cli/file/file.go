@@ -12,7 +12,6 @@ func fileCheck(name string) (final string) {
 		for i := 1; i > 0; i++ {
 			new := fmt.Sprintf("%s(%d)", name, i)
 			if _, err := os.Stat(new + ".mp4"); err != nil {
-				err = nil
 				final = new + ".mp4"
 				break
 			}
@@ -22,13 +21,13 @@ func fileCheck(name string) (final string) {
 }
 
 // Determines ouput filename with .mp4 attached, if file exists, it returns new name
-func ParseName(path string) (filename string, err error) {
+func ParseName(path string) (filename string) {
 	filename = path
 	if i := strings.LastIndex(path, string(os.PathListSeparator)); i != -1 {
-		filename = path[i+1:]
+		filename = filename[i+1:]
 	}
 	if i := strings.LastIndex(path, "."); i != -1 {
-		filename = path[:i]
+		filename = filename[:i]
 	}
 	filename = fileCheck(filename)
 	return
