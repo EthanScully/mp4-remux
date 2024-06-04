@@ -195,19 +195,23 @@ func buildFFmpeg() (err error) {
 	if !ok {
 		return fmt.Errorf("make not found")
 	}
-	sourceDir := fmt.Sprintf("%s/source/", workingDir)
+	sourceDir := fmt.Sprintf("%s/source", workingDir)
 	// Create Build Directory
-	buildDir := fmt.Sprintf("%s/build/FFmpeg/%s-%s/", sourceDir, OS, ARCH)
+	buildDir := fmt.Sprintf("%s/build/FFmpeg/%s-%s", sourceDir, OS, ARCH)
 	err = os.MkdirAll(buildDir, 0770)
 	if err != nil {
 		return err
 	}
 	// Create Libriary Directory
-	libDir := fmt.Sprintf("%s/lib/%s-%s/", workingDir, OS, ARCH)
+	libDir := fmt.Sprintf("%s/lib/%s-%s", workingDir, OS, ARCH)
 	// Set output of Make
 	makeArgs = append([]string{"prefix=" + libDir}, makeArgs...)
 	// Build FFmpeg
-	os.Chdir(buildDir)
+	err = os.Chdir(buildDir)
+	if err != nil {
+		return err
+	}
+	defer os.Chdir(workingDir)
 	var cmd []string
 	for _, v := range makeArgs {
 		cmd = append(cmd, "--"+v)
@@ -216,7 +220,6 @@ func buildFFmpeg() (err error) {
 	if err != nil {
 		return fmt.Errorf("make configure failed: %s\nnasm/yasm might need to be installed", err)
 	}
-
 	err = sendCmd("make", fmt.Sprintf("-j%d", runtime.NumCPU()))
 	if err != nil {
 		return fmt.Errorf("make failed: %s", err)
@@ -335,7 +338,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	_, err = os.Stat(fmt.Sprintf("%s/lib/%s-%s/", workingDir, OS, ARCH))
+	_, err = os.Stat(fmt.Sprintf("%s/lib/%s-%s", workingDir, OS, ARCH))
 	if err != nil {
 		err := buildFFmpeg()
 		if err != nil {
@@ -349,7 +352,7 @@ func main() {
 	if OUTPUT != "" {
 		ouputPath = OUTPUT
 	}
-	err = sendCmd("go", "build", "-ldflags=-s -w", "-o", ouputPath, workingDir+"/cli/main.go")
+	err = sendCmd("go", "build", "-ldflags=-s -w", "-o", ouputPath, "cli/main.go")
 	if err != nil {
 		fmt.Println("look at lib/ffmpeg.go for any lib requirments")
 		panic(err)
