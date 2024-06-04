@@ -25,16 +25,16 @@ jobs:
           apt update
           apt install build-essential make nasm yasm zlib1g-dev liblzma-dev golang ca-certificates tar gcc-aarch64-linux-gnu -y
           go run build/* mingw
-          go run build/*
-          go run build/* --arch arm64
-          go run build/* --os windows
-          go run build/* --os windows --arch arm64'
+          go run build/* --output mp4-remux-linux-amd64
+          go run build/* --arch arm64 --output mp4-remux-linux-arm64
+          go run build/* --os windows --output mp4-remux-windows-amd64.exe
+          go run build/* --os windows --arch arm64 --output mp4-remux-windows-arm64.exe'
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            bin/mp4-remux-linux-amd64
-            bin/mp4-remux-linux-arm64
-            bin/mp4-remux-windows-amd64.exe
-            bin/mp4-remux-windows-arm64.exe
+            mp4-remux-linux-amd64
+            mp4-remux-linux-arm64
+            mp4-remux-windows-amd64.exe
+            mp4-remux-windows-arm64.exe
