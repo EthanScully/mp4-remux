@@ -3,44 +3,36 @@ name: Docker Build
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   build:
-
     permissions:
       contents: write
 
     runs-on: ubuntu-latest
 
     steps:
-  
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Create build files
-      run: |
-        docker run --rm \
-        -v $(pwd):/mnt/ -w /mnt/ \
-        -t debian:sid bash -c '
-        apt update
-        apt upgrade -y
-        apt install build-essential git make nasm yasm zlib1g-dev liblzma-dev golang mingw-w64 wget tar gcc-aarch64-linux-gnu -y
-        git config --global --add safe.directory "*"
-        go run build/build.go
-        go run build/build.go --arch arm64
-        go run build/build.go --os windows
+      - name: Create build files
+        run: |
+          docker run --rm \
+          -v $(pwd):/mnt/ -w /mnt/ \
+          -t debian:sid bash -c '
+          apt update
+          apt install build-essential make nasm yasm zlib1g-dev liblzma-dev golang ca-certificates tar gcc-aarch64-linux-gnu -y
+          go run build/build.go llvm-mingw
+          go run build/build.go
+          go run build/build.go --arch arm64
+          go run build/build.go --os windows
+          go run build/build.go --os windows --arch arm64'
 
-        wget $(go run build/build.go llvm-mingw)
-        tar -xf $(go run build/build.go llvm-mingw name)
-        mv $(go run build/build.go llvm-mingw file)/* /usr/local/
-
-        go run build/build.go --os windows --arch arm64'
-
-    - name: Release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: |
-          mp4-remux-linux-amd64
-          mp4-remux-linux-arm64
-          mp4-remux-windows-amd64.exe
-          mp4-remux-windows-arm64.exe
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            mp4-remux-linux-amd64
+            mp4-remux-linux-arm64
+            mp4-remux-windows-amd64.exe
+            mp4-remux-windows-arm64.exe

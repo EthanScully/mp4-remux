@@ -22,13 +22,10 @@ docker run --rm \
         -v $(pwd):/mnt/ -w /mnt/ \
         -t debian:sid bash -c '
         apt update
-        apt upgrade -y
-        apt install build-essential make nasm yasm zlib1g-dev liblzma-dev golang mingw-w64 gcc-aarch64-linux-gnu tar wget -y
+        apt install build-essential make nasm yasm zlib1g-dev liblzma-dev golang gcc-aarch64-linux-gnu tar ca-certificates -y
+        go run build/build.go llvm-mingw
         go run build/build.go
         go run build/build.go --arch arm64
         go run build/build.go --os windows
-        wget $(go run build/build.go llvm-mingw)
-        tar -xf $(go run build/build.go llvm-mingw name)
-        mv $(go run build/build.go llvm-mingw file)/* /usr/local/
         go run build/build.go --os windows --arch arm64'
 ```
