@@ -23,10 +23,10 @@ func fileCheck(name string) (final string) {
 // Determines ouput filename with .mp4 attached, if file exists, it returns new name
 func ParseName(path string) (filename string) {
 	filename = path
-	if i := strings.LastIndex(path, string(os.PathListSeparator)); i != -1 {
+	if i := strings.LastIndex(filename, string(os.PathSeparator)); i != -1 {
 		filename = filename[i+1:]
 	}
-	if i := strings.LastIndex(path, "."); i != -1 {
+	if i := strings.LastIndex(filename, "."); i != -1 {
 		filename = filename[:i]
 	}
 	filename = fileCheck(filename)
