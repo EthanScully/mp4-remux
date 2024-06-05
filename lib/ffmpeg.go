@@ -248,6 +248,7 @@ func Remux(filepath, filename string) (err error) {
 		}
 		pkt := pq.packets[pq.pos]
 		if streamMapping[pkt.stream_index] == -1 {
+			C.av_packet_unref(pkt)
 			read()
 			continue
 		}
@@ -265,6 +266,7 @@ func Remux(filepath, filename string) (err error) {
 			diff := pkt.dts - pkt.pts
 			if diff > avgDiff*10 {
 				C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_ERROR, C.CString(fmt.Sprintf("dts > pts, %v:%v, dropping packet\n", pkt.dts, pkt.pts)))
+				C.av_packet_unref(pkt)
 				read()
 				continue
 			}
