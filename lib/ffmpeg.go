@@ -155,7 +155,7 @@ func Remux(filepath, filename string) (err error) {
 	}
 	// Init Packet Queue
 	var pq packetQueue
-	pq.init(100, int(stream_mapping_size))
+	pq.init(1000, int(stream_mapping_size))
 	defer pq.free()
 	for i := range pq.packets {
 		if C.av_read_frame(ifmt_ctx, pq.packets[i]) < 0 {
