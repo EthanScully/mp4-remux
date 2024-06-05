@@ -255,7 +255,7 @@ func Remux(filepath, filename string) (err error) {
 		pkt.dts = pq.pts[pkt.stream_index][0] + dtsOffset
 		pq.pts[pkt.stream_index] = pq.pts[pkt.stream_index][1:]
 		if pkt.dts == lastdts[pkt.stream_index] {
-			C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_INFO, C.CString("increasing pkt offset by 1"))
+			C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_INFO, C.CString("increasing pkt offset by 1\n"))
 			pkt.dts++
 			pkt.pts++
 			ptsOffset++
@@ -264,11 +264,11 @@ func Remux(filepath, filename string) (err error) {
 		if pkt.pts < pkt.dts {
 			diff := pkt.dts - pkt.pts
 			if diff > avgDiff*10 {
-				C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_ERROR, C.CString(fmt.Sprintf("dts > pts, %v:%v, dropping packet", pkt.dts, pkt.pts)))
+				C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_ERROR, C.CString(fmt.Sprintf("dts > pts, %v:%v, dropping packet\n", pkt.dts, pkt.pts)))
 				read()
 				continue
 			}
-			C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_INFO, C.CString(fmt.Sprintf("dts > pts, %v:%v, added pts offset: %v", pkt.dts, pkt.pts, diff)))
+			C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_INFO, C.CString(fmt.Sprintf("dts > pts, %v:%v, added pts offset: %v\n", pkt.dts, pkt.pts, diff)))
 			ptsOffset += diff
 			pkt.pts += diff
 		}
