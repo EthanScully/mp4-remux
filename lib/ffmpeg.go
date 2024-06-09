@@ -118,7 +118,7 @@ func Remux(filepath, filename string) (err error) {
 		}
 		if in_codecpar.codec_type == C.AVMEDIA_TYPE_AUDIO {
 			switch in_codecpar.codec_id {
-			case C.AV_CODEC_ID_AAC, C.AV_CODEC_ID_AC3, C.AV_CODEC_ID_DTS:
+			case C.AV_CODEC_ID_AAC, C.AV_CODEC_ID_AC3, C.AV_CODEC_ID_DTS, C.AV_CODEC_ID_EAC3:
 			default:
 				C.av_log_wrapper(unsafe.Pointer(ifmt_ctx), C.AV_LOG_ERROR, C.CString(fmt.Sprintf("audio stream #%d not supported, skipping... \n", i)))
 				streamMapping[i] = -1
