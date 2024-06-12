@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 )
 
@@ -15,6 +16,13 @@ func getmingw() (err error) {
 			err = fmt.Errorf("%v", r)
 		}
 	}()
+	var arch string
+	switch runtime.GOARCH {
+	case "amd64":
+		arch = "x86_64"
+	case "arm64":
+		arch = "aarch64"
+	}
 	url := "https://api.github.com/repos/mstorsjo/llvm-mingw/releases/latest"
 	resp, err := http.DefaultClient.Get(url)
 	if err != nil {
@@ -34,7 +42,7 @@ func getmingw() (err error) {
 	assets := api.(map[string]any)["assets"].([]any)
 	for _, v := range assets {
 		name = v.(map[string]any)["name"].(string)
-		if strings.Contains(name, "ucrt") && strings.Contains(name, "ubuntu") && strings.Contains(name, "x86_64") {
+		if strings.Contains(name, "ucrt") && strings.Contains(name, "ubuntu") && strings.Contains(name, arch) {
 			url = v.(map[string]any)["browser_download_url"].(string)
 			break
 		}
