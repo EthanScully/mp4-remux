@@ -36,6 +36,7 @@ var (
 		"enable-parser=av1",
 		"enable-parser=hevc",
 		"enable-parser=h264",
+		"enable-parser=mpegvideo",
 		"enable-protocol=file",
 		"disable-debug",
 	}
