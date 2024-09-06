@@ -49,11 +49,9 @@ func batch(directory string) {
 	threads := runtime.NumCPU()
 	for _, path := range todo {
 		wg.Add(1)
+		running++
 		go func(path string) {
 			defer wg.Done()
-			mtx.Lock()
-			running++
-			mtx.Unlock()
 			run(path)
 			mtx.Lock()
 			running--
