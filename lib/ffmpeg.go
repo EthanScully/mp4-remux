@@ -170,9 +170,15 @@ func Remux(filepath, filename string) (err error) {
 	// dts and pts processing
 	// //
 	var dtsOffset C.int64_t
-	var offset C.int64_t = pq.pts[0][0]
+	var offset C.int64_t
 	var ptsOffset C.int64_t
 	streamMapping := unsafe.Slice(stream_mapping, stream_mapping_size)
+	for i, pts := range pq.pts {
+		if streamMapping[i] == -1 {
+			continue
+		}
+		offset = pts[0]
+	}
 	for i, ptsList := range pq.pts {
 		if len(ptsList) == 0 {
 			continue
