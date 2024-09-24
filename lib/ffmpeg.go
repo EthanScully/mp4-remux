@@ -240,9 +240,10 @@ func Remux(filepath, filename string) (err error) {
 				pq.last = pq.pos
 			}
 		} else {
-			index := pq.packets[pq.pos].stream_index
-			pq.pts[index] = append(pq.pts[index], pq.packets[pq.pos].pts)
-			slices.Sort(pq.pts[index])
+			if index := pq.packets[pq.pos].stream_index; streamMapping[index] != -1 {
+				pq.pts[index] = append(pq.pts[index], pq.packets[pq.pos].pts)
+				slices.Sort(pq.pts[index])
+			}
 		}
 		pq.next()
 	}
